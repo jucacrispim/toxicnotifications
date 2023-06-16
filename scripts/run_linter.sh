@@ -1,12 +1,12 @@
 #!/bin/bash
 
-pylint toxicsecrets/
+pylint toxicnotifications/
 if [ $? != "0" ]
 then
     exit 1;
 fi
 
-flake8 toxicsecrets/
+flake8 toxicnotifications/
 
 if [ $? != "0" ]
 then
