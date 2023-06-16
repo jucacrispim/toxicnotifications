@@ -1,0 +1,3 @@
+[run]
+branch=True
+omit=toxicnotifications/__init__.py,toxicnotifications/cmds.py

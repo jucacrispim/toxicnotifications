@@ -1,0 +1,7 @@
+# put your requirements here
+toxicbuild-core>=0.10.0
+toxiccommon>=0.10.0
+mongomotor>=0.16.2
+pytest==7.3.2
+pytest-cov==4.1.0
+pytest-cover==3.0.0
