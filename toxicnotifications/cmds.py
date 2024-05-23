@@ -29,7 +29,7 @@ from uuid import uuid4
 from toxiccommon import common_setup
 from toxiccore.cmd import command, main
 from toxiccore.utils import (changedir, log, daemonize as daemon,
-                                   SettingsPatcher, set_loglevel)
+                             SettingsPatcher, set_loglevel)
 from toxicbuild.integrations import (
     create_settings as create_settings_integrations)
 
