@@ -4,6 +4,10 @@ docker: true
 versions:
   - '3.11'
 
+extra_indexes:
+  - 'https://pypi.poraodojuca.dev'
+
+
 system_packages:
   - make
 
