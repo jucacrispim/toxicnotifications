@@ -29,49 +29,56 @@ from uuid import uuid4
 from toxiccommon import common_setup
 from toxiccore.cmd import command, main
 from toxiccore.utils import (changedir, log, daemonize as daemon,
-                             SettingsPatcher, set_loglevel)
-from toxicbuild.integrations import (
-    create_settings as create_settings_integrations)
+                             MonkeyPatcher, set_loglevel)
 
-from . import create_settings_and_connect
+from toxicnotifications import create_settings_and_connect
 
-PIDFILE = 'toxicoutput.pid'
-LOGFILE = './toxicoutput.log'
+PIDFILE = 'toxicnotifications.pid'
+LOGFILE = './toxicnotifications.log'
+
+
+class SettingsPatcher(MonkeyPatcher):
+    """Patches the settings from pyrocumulus to use the same settings
+    as toxibuild."""
+
+    def patch_pyro_settings(self, settings):
+        from pyrocumulus import conf as pyroconf
+        self.patch_item(pyroconf, 'settings', settings)
 
 
 @command
 def create(root_dir):
-    """Creates a new toxicbuild output environment.
+    """Creates a new toxicnotifications environment.
 
-    :param --root_dir: Root directory for toxicbuild output."""
+    :param --root_dir: Root directory for toxicnotifications."""
 
-    print('Creating root_dir `{}` for toxicoutput'.format(root_dir))
+    print('Creating root_dir `{}` for toxicnotifications'.format(root_dir))
 
     os.makedirs(root_dir)
 
-    template_fname = 'toxicoutput.conf.tmpl'
-    template_dir = pkg_resources.resource_filename('toxicbuild.output',
+    template_fname = 'toxicnotifications.conf.tmpl'
+    template_dir = pkg_resources.resource_filename('toxicnotifications',
                                                    'templates')
     template_file = os.path.join(template_dir, template_fname)
-    dest_file = os.path.join(root_dir, 'toxicoutput.conf')
+    dest_file = os.path.join(root_dir, 'toxicnotifications.conf')
     shutil.copyfile(template_file, dest_file)
 
 
 @command
 def start(workdir, daemonize=False, stdout=LOGFILE, stderr=LOGFILE,
           conffile=None, loglevel='info', pidfile=PIDFILE):
-    """ Starts toxicbuild output.
+    """ Starts toxicnotifications.
 
     :param workdir: Work directory for server.
     :param --daemonize: Run as daemon. Defaults to False
     :param --stdout: stdout path. Defaults to /dev/null
     :param --stderr: stderr path. Defaults to /dev/null
     :param -c, --conffile: path to config file. Defaults to None.
-      If not conffile, will look for a file called ``toxicoutput.conf``
+      If not conffile, will look for a file called ``toxicnotifications.conf``
       inside ``workdir``
     :param --loglevel: Level for logging messages. Defaults to `info`.
     :param --pidfile: Name of the file to use as pidfile.  Defaults to
-      ``toxicoutput.pid``
+      ``toxicnotifications.pid``
     """
 
     if not os.path.exists(workdir):
@@ -84,9 +91,8 @@ def start(workdir, daemonize=False, stdout=LOGFILE, stderr=LOGFILE,
 
         _set_conffile_env(workdir, conffile)
 
-        create_settings_integrations()
         create_settings_and_connect()
-        from . import settings
+        from toxicnotifications import settings
 
         SettingsPatcher().patch_pyro_settings(settings)
 
@@ -94,13 +100,13 @@ def start(workdir, daemonize=False, stdout=LOGFILE, stderr=LOGFILE,
 
         sys.argv = ['pyromanager.py', '']
 
-        print('Starting output web api on port {}'.format(
+        print('Starting notifications web api on port {}'.format(
             settings.TORNADO_PORT))
 
         command = get_command('runtornado')()
 
         command.kill = False
-        user_msg = 'Starting ToxicOutput. Listening on port {}'
+        user_msg = 'Starting Toxicnotifications. Listening on port {}'
         command.user_message = user_msg
         command.daemonize = daemonize
         command.stderr = stderr
@@ -112,17 +118,18 @@ def start(workdir, daemonize=False, stdout=LOGFILE, stderr=LOGFILE,
         command.pidfile = pidfile
 
         if daemonize:
-            daemon(call=run_toxicoutput, cargs=(loglevel, command), ckwargs={},
+            daemon(call=run_toxicnotifications,
+                   cargs=(loglevel, command), ckwargs={},
                    stdout=stdout, stderr=stderr, workdir=workdir,
                    pidfile=pidfile)
         else:
             with changedir(workdir):
-                run_toxicoutput(loglevel, command)
+                run_toxicnotifications(loglevel, command)
 
 
 @command
 def stop(workdir, pidfile=PIDFILE, kill=False):
-    """ Stops toxicbuid output.
+    """ Stops toxicnotifications.
 
     :param workdir: Work directory for the ui to be killed.
     :param --pidfile: pid file for the process.
@@ -137,16 +144,9 @@ def stop(workdir, pidfile=PIDFILE, kill=False):
     with changedir(workdir):
         sys.path.append(workdir)
 
-        os.environ['TOXICOUTPUT_SETTINGS'] = os.path.join(
-            workdir, 'toxicoutput.conf')
+        os.environ['TOXICNOTIFICATIONS_SETTINGS'] = os.path.join(
+            workdir, 'toxicnotifications.conf')
 
-        os.environ['TOXICMASTER_SETTINGS'] = os.environ[
-            'TOXICOUTPUT_SETTINGS']
-
-        os.environ['TOXICINTEGRATIONS_SETTINGS'] = os.environ[
-            'TOXICOUTPUT_SETTINGS']
-
-        create_settings_integrations()
         create_settings_and_connect()
 
         print('Stopping output')
@@ -168,9 +168,9 @@ def stop(workdir, pidfile=PIDFILE, kill=False):
 
 @command
 def restart(workdir, pidfile=PIDFILE, loglevel='info'):
-    """Restarts toxicbuild output
+    """Restarts toxicnotifications
 
-    The instance of toxicoutput in ``workdir`` will be restarted.
+    The instance of toxicnotifications in ``workdir`` will be restarted.
     :param workdir: Workdir for instance to be killed.
     :param --pidfile: Name of the file to use as pidfile.
     :param --loglevel: Level for logging messages.
@@ -187,13 +187,12 @@ def create_token(workdir, conffile=None):
     :param workdir: Work directory for server.
 
     :param -c, --conffile: path to config file. Defaults to None.
-      If not conffile, will look for a file called ``toxicoutput.conf``
+      If not conffile, will look for a file called ``toxicnotifications.conf``
       inside ``workdir``."""
 
     _set_conffile_env(workdir, conffile)
 
     create_settings_and_connect()
-    create_settings_integrations()
 
     loop = asyncio.get_event_loop()
     uncrypted_token = loop.run_until_complete(create_auth_token())
@@ -205,10 +204,9 @@ async def create_auth_token(workdir=None):
     if workdir:
         _set_conffile_env(workdir, None)
         create_settings_and_connect()
-        create_settings_integrations()
 
     from pyrocumulus.auth import AccessToken, Permission
-    from toxicbuild.output.notifications import Notification
+    from toxicnotifications import Notification
 
     try:
         token = AccessToken(name='notifications-token-{}'.format(uuid4().hex))
@@ -224,18 +222,18 @@ def output_handler_init(handler):
     """Starts the output server"""
 
     asyncio.ensure_future(handler.run())
-    log('ToxicOutput is running.')
+    log('Toxicnotifications is running.')
 
 
-def run_toxicoutput(loglevel, tornado_server):
+def run_toxicnotifications(loglevel, tornado_server):
     set_loglevel(loglevel)
 
     loop = asyncio.get_event_loop()
-    from . import settings
+    from toxicnotifications import settings
 
     loop.run_until_complete(common_setup(settings))
 
-    from toxicbuild.output.server import OutputMessageHandler
+    from toxicnotifications.server import OutputMessageHandler
     handler = OutputMessageHandler()
 
     output_handler_init(handler)
@@ -264,15 +262,12 @@ def _set_conffile_env(workdir, conffile):
             print('Config file must be inside workdir')
             sys.exit(1)
 
-        os.environ['TOXICOUTPUT_SETTINGS'] = os.path.join(
+        os.environ['TOXICNOTIFICATIONS_SETTINGS'] = os.path.join(
             workdir, conffile)
 
     else:
-        os.environ['TOXICOUTPUT_SETTINGS'] = os.path.join(
-            workdir, 'toxicoutput.conf')
-
-    os.environ['TOXICINTEGRATIONS_SETTINGS'] = os.environ[
-        'TOXICOUTPUT_SETTINGS']
+        os.environ['TOXICNOTIFICATIONS_SETTINGS'] = os.path.join(
+            workdir, 'toxicnotifications.conf')
 
 
 def _process_exist(pid):

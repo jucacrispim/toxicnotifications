@@ -1,5 +1,8 @@
 # put your requirements here
-toxicbuild-core>=0.10.0
+toxiccore>=0.11.0
+toxicmaster>=0.11.0
+toxicpoller>=0.10.0
+toxicslave>=0.11.0
 toxiccommon>=0.10.0
 mongomotor>=0.16.2
 pytest==7.3.2

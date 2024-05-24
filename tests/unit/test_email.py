@@ -21,7 +21,7 @@ from bson.objectid import ObjectId
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, AsyncMock
 
-from toxicnotifications import email
+from toxicnotifications import mail as email
 
 from tests import async_test
 

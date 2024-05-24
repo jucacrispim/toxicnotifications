@@ -42,5 +42,5 @@ from .base import Notification  # noqa
 # The order of the imports here is the order the notifications will be
 # displayed in the ui.
 from .slack import SlackNotification  # noqa
-from .email import EmailNotification  # noqa
+from .mail import EmailNotification  # noqa
 from .custom_webhook import CustomWebhookNotification  # noqa

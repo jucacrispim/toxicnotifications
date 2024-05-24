@@ -29,7 +29,7 @@ from pyrocumulus.web.urlmappers import URLSpec
 from toxiccore.utils import LoggerMixin
 from toxiccommon.exchanges import notifications
 from toxicnotifications import Notification
-from toxicnotifications.email import send_email
+from toxicnotifications.mail import send_email
 
 
 class OutputMessageHandler(LoggerMixin):

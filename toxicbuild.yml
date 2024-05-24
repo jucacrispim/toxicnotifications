@@ -24,8 +24,8 @@ steps:
   - name: Unit tests & coverage
     command: ./scripts/check_coverage.sh
 
-  # - name: Functional tests
-  #   command: pytest tests/functional
+  - name: Functional tests
+    command: pytest tests/functional
 
   - name: Build docs
     command: ./scripts/build_docs.sh
