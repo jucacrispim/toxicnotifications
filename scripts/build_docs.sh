@@ -3,5 +3,5 @@ cd docs
 export PYTHONPATH="$PWD/../"
 rm -rf "$PWD/source/apidoc"
 rm -rf "$PWD/build"
-sphinx-apidoc -o "$PWD/source/apidoc" "$PWD/../toxiccore/"
+sphinx-apidoc -o "$PWD/source/apidoc" "$PWD/../toxicnotifications/"
 make html

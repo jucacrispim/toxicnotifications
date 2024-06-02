@@ -150,7 +150,6 @@ class NotificationTest(BaseFunctionalTest):
         headers = {'Authorization': 'token: {}'.format(self.auth_token)}
         r = await requests.get(url, headers=headers)
         r = r.json()
-
         self.assertEqual(len(r['notifications']), 3)
 
     @async_test

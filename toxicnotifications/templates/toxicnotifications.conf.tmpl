@@ -1,37 +1,37 @@
 import os
 
-host = os.environ.get('DBHOST', 'localhost')
-port = int(os.environ.get('DBPORT', 27017))
-dbname = os.environ.get('DBNAME', 'toxicbuild')
-dbuser = os.environ.get('DBUSER')
-dbpass = os.environ.get('DBPASSWORD')
+DBHOST = os.environ.get('NOTIFICATIONS_DBHOST', 'localhost')
+DBPORT = int(os.environ.get('NOTIFICATIONS_DBPORT', 27017))
+DBNAME = os.environ.get('NOTIFICATIONS_DBNAME', 'toxicbuild')
+DBUSER = os.environ.get('NOTIFICATIONS_DBUSER')
+DBPASS = os.environ.get('NOTIFICATIONS_DBPASSWORD')
 
-DATABASE = {'host': host,
-            'port': port,
-            'db': dbname}
+DATABASE = {'host': DBHOST,
+            'port': DBPORT,
+            'db': DBNAME}
 
 if dbuser:
-    DATABASE['username'] = dbuser
+    DATABASE['username'] = DBUSER
 
 if dbpass:
-    DATABASE['password'] = dbpass
+    DATABASE['password'] = DBPASS
 
-amqp_host = os.environ.get('AMQPHOST', 'localhost')
-amqp_port = int(os.environ.get('AMQPPORT', 5672))
-amqp_login = os.environ.get('AMQPLOGIN')
-amqp_virtualhost = os.environ.get('AMQPVIRTUALHOST')
-amqp_password = os.environ.get('AMQPASSWORD')
+AMQP_HOST = os.environ.get('AMQPHOST', 'localhost')
+AMQP_PORT = int(os.environ.get('AMQPPORT', 5672))
+AMQP_LOGIN = os.environ.get('AMQPLOGIN')
+AMQP_VIRTUALHOST = os.environ.get('AMQPVIRTUALHOST')
+AMQP_PASSWORD = os.environ.get('AMQPASSWORD')
 
-RABBITMQ_CONNECTION = {'host': amqp_host, 'port': amqp_port}
+RABBITMQ_CONNECTION = {'host': AMQP_HOST, 'port': AMQP_PORT}
 
-if amqp_login:
-    RABBITMQ_CONNECTION['login'] = amqp_login
+if AMQP_LOGIN:
+    RABBITMQ_CONNECTION['login'] = AMQP_LOGIN
 
-if amqp_virtualhost:
-    RABBITMQ_CONNECTION['virtualhost'] = amqp_virtualhost
+if AMQP_VIRTUALHOST:
+    RABBITMQ_CONNECTION['virtualhost'] = AMQP_VIRTUALHOST
 
-if amqp_password:
-    RABBITMQ_CONNECTION['password'] = amqp_password
+if AMQP_PASSWORD:
+    RABBITMQ_CONNECTION['password'] = AMQP_PASSWORD
 
 
 SMTP_MAIL_FROM = os.environ.get('SMTP_MAIL_FROM', '')
@@ -42,6 +42,6 @@ SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
 SMTP_STARTTLS = os.environ.get('SMTP_START_TLS') == '1'
 SMTP_VALIDATE_CERTS = os.environ.get('SMTP_VALIDATE_CERTS') == '1'
 
-TORNADO_PORT = int(os.environ.get('OUTPUT_WEB_PORT', 9432))
+PORT = int(os.environ.get('NOTIFICAIONS_PORT', 9432))
 
 APPLICATIONS = ['toxicnotifications.server.app']

@@ -142,7 +142,7 @@ class NotificationWebHandler(LoggerMixin, BasePyroAuthHandler):
     async def send_email(self):
         recipients = self.body['recipients']
         subject = self.body['subject']
-        message = self.body['subject']
+        message = self.body['message']
         await send_email(recipients, subject, message)
         return {'send-email': True}
 
