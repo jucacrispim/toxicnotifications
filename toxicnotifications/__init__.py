@@ -22,6 +22,8 @@
 from mongomotor import connect
 from toxiccore.conf import Settings
 
+__version__ = '0.10.0'
+
 ENVVAR = 'TOXICNOTIFICATIONS_SETTINGS'
 DEFAULT_SETTINGS = 'toxicnotifications.conf'
 
