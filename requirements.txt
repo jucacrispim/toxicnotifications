@@ -16,3 +16,4 @@ xenon==0.9.0
 sphinx==7.0.1
 sphinx_pdj_theme==0.4.0
 pyrocumulus>=0.12.4
+build==0.10.0
