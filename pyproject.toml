@@ -43,4 +43,4 @@ include = ["toxicnotifications"]
 version = {attr = "toxicnotifications.__version__"}
 
 [project.scripts]
-toxicslave = "toxicnotifications.cmds:main"
+toxicnotifications = "toxicnotifications.cmds:main"
