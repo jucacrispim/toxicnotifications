@@ -41,3 +41,6 @@ include = ["toxicnotifications"]
 
 [tool.setuptools.dynamic]
 version = {attr = "toxicnotifications.__version__"}
+
+[project.scripts]
+toxicslave = "toxicnotifications.cmds:main"
