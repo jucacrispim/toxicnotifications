@@ -10,10 +10,10 @@ DATABASE = {'host': DBHOST,
             'port': DBPORT,
             'db': DBNAME}
 
-if dbuser:
+if DBUSER:
     DATABASE['username'] = DBUSER
 
-if dbpass:
+if DBPASS:
     DATABASE['password'] = DBPASS
 
 AMQP_HOST = os.environ.get('AMQPHOST', 'localhost')
