@@ -1,0 +1,3 @@
+recursive-include toxicnotifications/templates *
+
+recursive-exclude toxicnotifications/templates *~
