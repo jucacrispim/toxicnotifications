@@ -238,7 +238,7 @@ v0.7
 
 Traduções da documentação
 =========================
-`MongoMotor docs in english <http://mongomotor.poraodojuca.net/en/>`_
+`MongoMotor docs in english <http://mongomotor.poraodojuca.dev/en/>`_
 
 Bom, é isso.
 Obrigado!

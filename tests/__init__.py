@@ -2,6 +2,7 @@
 
 
 import asyncio
+import atexit
 import inspect
 from unittest.mock import (MagicMock, NonCallableMagicMock, FunctionTypes)
 from unittest.mock import (_is_list, _callable, _instance_callable,
@@ -10,6 +11,7 @@ from unittest.mock import (_is_list, _callable, _instance_callable,
 
 import os
 from toxicnotifications import create_settings_and_connect as create_settings
+from mongomotor.connection import disconnect
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'testdata')
 os.environ['TOXICNOTIFICATIONS_SETTINGS'] = os.path.join(
@@ -17,10 +19,13 @@ os.environ['TOXICNOTIFICATIONS_SETTINGS'] = os.path.join(
 create_settings()
 
 
+loop = asyncio.new_event_loop()
+
+
 def async_test(f):
 
     def wrapper(*args, **kwargs):
-        loop = asyncio.get_event_loop()
+        asyncio.set_event_loop(loop)
         loop.run_until_complete(f(*args, **kwargs))
 
     return wrapper
@@ -151,3 +156,15 @@ def create_autospec(spec, spec_set=False, instance=False, mock_cls=MagicMock,
             setattr(mock, entry, new)
 
     return mock
+
+
+def clean():
+    try:
+        loop.run_until_complete(disconnect())
+    except Exception:
+        pass
+
+    loop.stop()
+
+
+atexit.register(clean)

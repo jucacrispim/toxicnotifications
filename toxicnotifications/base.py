@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2019 Juca Crispim <juca@poraodojuca.net>
+# Copyright 2019 Juca Crispim <juca@poraodojuca.dev>
 
 # This file is part of toxicbuild.
 
@@ -21,14 +21,13 @@ from collections import OrderedDict
 import copy
 
 from mongomotor import Document
+from mongomotor.document import TopLevelDocumentMetaclass
 from mongomotor.fields import (
     ListField,
     StringField,
     ReferenceField,
     ObjectIdField
 )
-from mongomotor.metaprogramming import AsyncTopLevelDocumentMetaclass
-
 
 from toxiccore.plugins import Plugin, PluginMeta
 from toxiccore.utils import LoggerMixin
@@ -49,7 +48,7 @@ _TRANSLATE_TABLE = {PrettyListField: 'list',
                     ObjectIdField: 'string'}
 
 
-class MetaNotification(PluginMeta, AsyncTopLevelDocumentMetaclass):
+class MetaNotification(PluginMeta, TopLevelDocumentMetaclass):
     """Metaclass that sets name to the class definition as
     mongo fields while keeping the interface of setting your notification's
     name as string in definition time."""

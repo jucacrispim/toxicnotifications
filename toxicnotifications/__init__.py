@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 Juca Crispim <juca@poraodojuca.net>
+# Copyright 2018 Juca Crispim <juca@poraodojuca.dev>
 
 # This file is part of toxicbuild.
 
