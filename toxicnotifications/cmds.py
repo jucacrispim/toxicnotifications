@@ -20,7 +20,7 @@
 
 import asyncio
 import os
-import pkg_resources
+import importlib
 import shutil
 import sys
 from time import sleep
@@ -57,8 +57,8 @@ def create(root_dir):
     os.makedirs(root_dir)
 
     template_fname = 'toxicnotifications.conf.tmpl'
-    template_dir = pkg_resources.resource_filename('toxicnotifications',
-                                                   'templates')
+    template_dir = importlib.resources.files(
+        'toxicnotifications').joinpath('templates')
     template_file = os.path.join(template_dir, template_fname)
     dest_file = os.path.join(root_dir, 'toxicnotifications.conf')
     shutil.copyfile(template_file, dest_file)
