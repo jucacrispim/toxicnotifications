@@ -85,46 +85,41 @@ def start(workdir, daemonize=False, stdout=LOGFILE, stderr=LOGFILE,
         print('Workdir `{}` does not exist'.format(workdir))
         sys.exit(1)
 
-    workdir = os.path.abspath(workdir)
-    with changedir(workdir):
-        sys.path.append(workdir)
+    _set_conffile_env(workdir, conffile)
 
-        _set_conffile_env(workdir, conffile)
+    create_settings_and_connect()
+    from toxicnotifications import settings
 
-        create_settings_and_connect()
-        from toxicnotifications import settings
+    addr = settings.ADDR
+    port = settings.PORT
+    try:
+        use_ssl = settings.USE_SSL
+    except AttributeError:
+        use_ssl = False
 
-        SettingsPatcher().patch_pyro_settings(settings)
+    try:
+        certfile = settings.CERTFILE
+    except AttributeError:
+        certfile = None
 
-        from pyrocumulus.commands.base import get_command
+    try:
+        keyfile = settings.KEYFILE
+    except AttributeError:
+        keyfile = None
 
-        sys.argv = ['pyromanager.py', '']
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-        print('Starting notifications web api on port {}'.format(
-            settings.TORNADO_PORT))
-
-        command = get_command('runtornado')()
-
-        command.kill = False
-        user_msg = 'Starting Toxicnotifications. Listening on port {}'
-        command.user_message = user_msg
-        command.daemonize = daemonize
-        command.stderr = stderr
-        command.asyncio = True
-        command.application = None
-        command.loglevel = loglevel
-        command.stdout = stdout
-        command.port = settings.TORNADO_PORT
-        command.pidfile = pidfile
-
-        if daemonize:
-            daemon(call=run_toxicnotifications,
-                   cargs=(loglevel, command), ckwargs={},
-                   stdout=stdout, stderr=stderr, workdir=workdir,
-                   pidfile=pidfile)
-        else:
-            with changedir(workdir):
-                run_toxicnotifications(loglevel, command)
+    if daemonize:
+        daemon(call=notifications_init, cargs=(addr, port),
+               ckwargs={'use_ssl': use_ssl, 'certfile': certfile,
+                        'keyfile': keyfile, 'loglevel': loglevel},
+               stdout=stdout, stderr=stderr, workdir=workdir, pidfile=pidfile)
+    else:
+        with changedir(workdir):
+            notifications_init(addr, port, use_ssl=use_ssl,
+                               certfile=certfile, keyfile=keyfile,
+                               loglevel=loglevel)
 
 
 @command
@@ -225,23 +220,17 @@ def output_handler_init(handler):
     log('Toxicnotifications is running.')
 
 
-def run_toxicnotifications(loglevel, tornado_server):
-    set_loglevel(loglevel)
+def notifications_init(addr, port, use_ssl, certfile, keyfile, loglevel):
 
-    loop = asyncio.get_event_loop()
+    from toxicnotifications.server import OutputMessageHandler, run_server
     from toxicnotifications import settings
-
+    set_loglevel(loglevel)
+    loop = asyncio.get_event_loop()
     loop.run_until_complete(common_setup(settings))
-
-    from toxicnotifications.server import OutputMessageHandler
     handler = OutputMessageHandler()
-
-    output_handler_init(handler)
-    tornado_server.run()
-    try:
-        loop.run_forever()
-    finally:
-        handler.sync_shutdown()
+    asyncio.ensure_future(handler.run())
+    run_server(addr, port, use_ssl=use_ssl,
+               certfile=certfile, keyfile=keyfile)
 
 
 def _check_conffile(workdir, conffile):

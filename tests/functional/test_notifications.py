@@ -17,9 +17,8 @@
 # along with toxicbuild. If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
-import json
 from pyrocumulus.auth import AccessToken, Permission
-from toxiccore import requests
+from toxiccore.client import BaseToxicClient
 from toxicmaster.repository import Repository
 from toxicmaster.slave import Slave
 from toxicmaster.users import User
@@ -36,6 +35,57 @@ class DummyUIClient(DummyMasterHoleClient):
     async def create_slave(self):
         slave_port = settings.SLAVE_PORT
         r = await super().create_slave(slave_port)
+        return r
+
+
+class DummyNotificationsClient(BaseToxicClient):
+
+    def __init__(self, *args, repo_info=None, **kwargs):
+        kwargs['use_ssl'] = False
+        kwargs['validate_cert'] = False
+        super().__init__(*args, **kwargs)
+        self.repo_info = repo_info
+
+    async def request2server(self, action, body):
+
+        data = {'action': action, 'body': body,
+                'token': '123'}
+        await self.write(data)
+        response = await self.get_response()
+        return response['body']
+
+    async def enable_notification(self, webhook_url=None):
+        action = 'enable-notification'
+        webhook_url = webhook_url or 'http://localhost:8123/webhookmessage/'
+        body = {'name': 'custom-webhook',
+                'repository_id': str(self.repo_info['id']),
+                'webhook_url': webhook_url}
+        r = await self.request2server(action, body)
+        return r
+
+    async def disable_notification(self):
+        action = 'disable-notification'
+        body = {'name': 'custom-webhook',
+                'repository_id': str(self.repo_info['id'])}
+        r = await self.request2server(action, body)
+        return r
+
+    async def list_notifications(self, repo_id=None):
+        action = 'list-notifications'
+        body = {'repository_id': repo_id}
+        r = await self.request2server(action, body)
+        return r
+
+    async def remove_all(self):
+        action = 'remove-all'
+        body = {'owner': self.owner}
+        r = await self.request2server(action, body)
+        return r
+
+    async def get_secrets(self):
+        action = 'get-secrets'
+        body = {'owners': [self.owner]}
+        r = await self.request2server(action, body)
         return r
 
 
@@ -82,24 +132,20 @@ class NotificationTest(BaseFunctionalTest):
 
     @async_test
     async def test_add_notification(self):
-        notif_name = 'custom-webhook'
-        kw = {'webhook_url': 'http://localhost:8123/webhookmessage/',
-              'repository_id': str(self.repo_info['id'])}
-        url = 'http://localhost:8345/{}'.format(notif_name)
-        headers = {'Authorization': 'token: {}'.format(self.auth_token)}
-        r = await requests.post(url, data=json.dumps(kw),
-                                headers=headers)
-        self.assertEqual(r.status, 200)
+        dc = DummyNotificationsClient('127.0.0.1', settings.PORT,
+                                      repo_info=self.repo_info)
+        async with dc:
+            r = await dc.enable_notification()
+
+        self.assertEqual(r['custom-webhook'], 'enabled')
 
     @async_test
     async def test_trigger_notification(self):
 
-        notif_name = 'custom-webhook'
-        kw = {'webhook_url': 'http://localhost:8123/webhookmessage/',
-              'repository_id': str(self.repo_info['id'])}
-        url = 'http://localhost:8345/{}'.format(notif_name)
-        headers = {'Authorization': 'token: {}'.format(self.auth_token)}
-        await requests.post(url, data=json.dumps(kw), headers=headers)
+        dc = DummyNotificationsClient('127.0.0.1', settings.PORT,
+                                      repo_info=self.repo_info)
+        async with dc:
+            await dc.enable_notification()
 
         dc = DummyUIClient(self.user, settings.HOLE_ADDR,
                            settings.HOLE_PORT)
@@ -111,16 +157,11 @@ class NotificationTest(BaseFunctionalTest):
 
         timeout = 20
         t = 0
+        count = 0
         while t < timeout:
             count = await WebHookMessage.objects.count()
-            try:
-                self.assertGreater(count, 0)
-            except Exception:
-                pass
-
-            else:
+            if count > 0:
                 break
-
             await asyncio.sleep(0.1)
             t += 1
 
@@ -128,45 +169,37 @@ class NotificationTest(BaseFunctionalTest):
 
     @async_test
     async def test_remove_notification(self):
-        notif_name = 'custom-webhook'
-        kw = {'webhook_url': 'http://localhost:8123/webhookmessage/',
-              'repository_id': str(self.repo_info['id'])}
-        url = 'http://localhost:8345/{}'.format(notif_name)
-        headers = {'Authorization': 'token: {}'.format(self.auth_token)}
-        await requests.post(url, data=json.dumps(kw),
-                            headers=headers)
+        dc = DummyNotificationsClient('127.0.0.1', settings.PORT,
+                                      repo_info=self.repo_info)
+        async with dc:
+            await dc.enable_notification()
 
-        kw = {'repository_id': str(self.repo_info['id'])}
-        url = 'http://localhost:8345/{}'.format(notif_name)
-        headers = {'Authorization': 'token: {}'.format(self.auth_token)}
-        r = await requests.delete(url, data=json.dumps(kw),
-                                  headers=headers)
+        async with dc:
+            r = await dc.disable_notification()
 
-        self.assertEqual(r.status, 200)
+        self.assertEqual(r['custom-webhook'], 'disabled')
 
     @async_test
     async def test_list_notifications(self):
-        url = 'http://localhost:8345/list/'
-        headers = {'Authorization': 'token: {}'.format(self.auth_token)}
-        r = await requests.get(url, headers=headers)
-        r = r.json()
+        dc = DummyNotificationsClient('127.0.0.1', settings.PORT,
+                                      repo_info=self.repo_info)
+        async with dc:
+            r = await dc.list_notifications()
         self.assertEqual(len(r['notifications']), 3)
 
     @async_test
     async def test_list_notifications_for_repo(self):
 
-        notif_name = 'custom-webhook'
-        kw = {'webhook_url': 'http://localhost:8123/webhookmessage/',
-              'repository_id': str(self.repo_info['id'])}
-        url = 'http://localhost:8345/{}'.format(notif_name)
-        headers = {'Authorization': 'token: {}'.format(self.auth_token)}
-        await requests.post(url, data=json.dumps(kw), headers=headers)
+        dc = DummyNotificationsClient('127.0.0.1', settings.PORT,
+                                      repo_info=self.repo_info)
+        async with dc:
+            await dc.enable_notification()
 
-        url = 'http://localhost:8345/list/{}'.format(self.repo_info['id'])
-        headers = {'Authorization': 'token: {}'.format(self.auth_token)}
-        r = await requests.get(url, headers=headers)
-        notifications = r.json()['notifications']
+        async with dc:
+            r = await dc.list_notifications(
+                repo_id=str(self.repo_info['id']))
 
+        notifications = r['notifications']
         for n in notifications:
             if n['name'] == 'custom-webhook':
                 break

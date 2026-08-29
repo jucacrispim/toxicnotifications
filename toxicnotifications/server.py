@@ -17,18 +17,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with toxicbuild. If not, see <http://www.gnu.org/licenses/>.
 
-import json
 from asyncio import ensure_future
 from asyncio import get_event_loop
 from asyncio import sleep
+import traceback
 from asyncamqp.exceptions import ConsumerTimeout
-from pyrocumulus.web.applications import PyroApplication
-from pyrocumulus.web.decorators import post, delete, get, put
-from pyrocumulus.web.handlers import BasePyroAuthHandler
-from pyrocumulus.web.urlmappers import URLSpec
-from toxiccore.utils import LoggerMixin
+from toxiccore.protocol import BaseToxicProtocol
+from toxiccore.server import ToxicServer
+from toxiccore.utils import LoggerMixin, log
 from toxiccommon.exchanges import notifications
-from toxicnotifications import Notification
+from toxicnotifications import Notification, settings
 from toxicnotifications.mail import send_email
 
 
@@ -99,60 +97,80 @@ class OutputMessageHandler(LoggerMixin):
             t.add_done_callback(lambda r: self.remove_running_task())
 
 
-class NotificationWebHandler(LoggerMixin, BasePyroAuthHandler):
+class NotificationsProtocol(BaseToxicProtocol):
 
-    """Web handler responsible for listing notification methods and
-    enabling/disabling notifications for repositories."""
+    actions = {'enable-notification',
+               'disable-notification',
+               'update-notification',
+               'list-notifications',
+               'send-email'}
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.body = None
+    @property
+    def encrypted_token(self):  # pragma no cover
+        return settings.ACCESS_TOKEN
 
-    async def async_prepare(self):
-        await super().async_prepare()
-        if self.request.body:
-            self.body = json.loads(self.request.body)
+    async def client_connected(self):
+        assert self.action in type(self).actions, 'Bad Action'
+        fname = self.action.replace('-', '_')
+        try:
+            meth = getattr(self, fname)
+            await meth()
+        except Exception:
+            msg = traceback.format_exc()
+            self.log(msg, level="error")
+            await self.send_response(
+                body={self.action: 'error', 'error': msg},
+                code=1)
+            return False
+        else:
+            return True
 
-    @post('(.*)')
-    async def enable_notification(self, notification_name):
-        notification_name = notification_name.decode()
-        notification_cls = Notification.get_plugin(notification_name)
-        notification = notification_cls(**self.body)
+    async def enable_notification(self):
+        body = self.data['body']
+
+        notif_name = body.pop('name')
+        notification_cls = Notification.get_plugin(notif_name)
+        notification = notification_cls(**body)
         await notification.save()
-        return {notification_name: 'enabled'}
 
-    @delete('(.*)')
-    async def disable_notification(self, notification_name):
-        notification_name = notification_name.decode()
+        await self.send_response(body={notif_name: 'enabled'}, code=0)
+
+    async def disable_notification(self):
+        body = self.data['body']
+        notification_name = body.pop('name')
+
         notification = await Notification.objects.get(_name=notification_name,
-                                                      **self.body)
+                                                      **body)
         await notification.delete()
-        return {notification_name: 'disabled'}
+        await self.send_response(body={notification_name: 'disabled'}, code=0)
 
-    @put('(.*)')
-    async def update_notification(self, notification_name):
-        notification_name = notification_name.decode()
-        repo_id = self.body['repository_id']
+    async def list_notifications(self):
+        body = self.data['body']
+        repo_id = body.get('repository_id')
+        notifications = Notification.list_plugins()
+        schemas = [n.get_schema(to_serialize=True) for n in notifications]
+        if repo_id:
+            notifs = await Notification.objects.filter(
+                repository_id=repo_id).to_list()
+            self._merge_notif_values(schemas, notifs)
+        await self.send_response(body={'notifications': schemas}, code=0)
+
+    async def update_notification(self):
+        body = self.data['body']
+        notification_name = body.pop('name')
+        repo_id = body.pop('repository_id')
         await Notification.objects(
             _name=notification_name, repository_id=repo_id).update_one(
-                **self.body)
-        return {notification_name: 'updated'}
+                **body)
+        await self.send_response(body={notification_name: 'updated'}, code=0)
 
-    @post('send-email')
     async def send_email(self):
-        recipients = self.body['recipients']
-        subject = self.body['subject']
-        message = self.body['message']
+        body = self.data['body']
+        recipients = body['recipients']
+        subject = body['subject']
+        message = body['message']
         await send_email(recipients, subject, message)
-        return {'send-email': True}
-
-    def _parse_value(self, value):
-        if isinstance(value, list):
-            value = [str(v) for v in value]
-        else:
-            value = str(value)
-
-        return value
+        await self.send_response(body={'send-email': True}, code=0)
 
     def _merge_notif_values(self, schemas, notifs):
         notifs_tb = {n.name: n for n in notifs}
@@ -171,17 +189,22 @@ class NotificationWebHandler(LoggerMixin, BasePyroAuthHandler):
 
             schema['enabled'] = True
 
-    @get('list/(.*)')
-    async def list_notifications(self, repo_id=None):
-        notifications = Notification.list_plugins()
-        schemas = [n.get_schema(to_serialize=True) for n in notifications]
-        if repo_id:
-            repo_id = repo_id.decode()
-            notifs = await Notification.objects.filter(
-                repository_id=repo_id).to_list()
-            self._merge_notif_values(schemas, notifs)
-        return {'notifications': schemas}
+    def _parse_value(self, value):
+        if isinstance(value, list):
+            value = [str(v) for v in value]
+        else:
+            value = str(value)
+
+        return value
 
 
-notification_api = URLSpec('/(.*)', NotificationWebHandler)
-app = PyroApplication([notification_api])
+class NotificationsServer(ToxicServer):
+
+    PROTOCOL_CLS = NotificationsProtocol
+
+
+def run_server(addr='0.0.0.0', port=1234, loop=None, use_ssl=False,
+               **ssl_kw):  # pragma no cover
+    log('Serving at {}'.format(port))
+    with NotificationsServer(addr, port, loop, use_ssl, **ssl_kw) as server:
+        server.start()

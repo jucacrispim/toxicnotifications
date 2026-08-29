@@ -20,17 +20,13 @@
 # Server for custom webhook. Used in functional tests
 
 import asyncio
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 import sys
 from mando import command, main
 from mongomotor import Document
 from mongomotor.fields import StringField
-from pyrocumulus.commands.base import get_command
-from pyrocumulus.web.applications import PyroApplication
-from pyrocumulus.web.decorators import post
-from pyrocumulus.web.handlers import RestHandler
-from pyrocumulus.web.urlmappers import URLSpec
-from toxiccore.utils import changedir
+from toxiccore.utils import changedir, daemonize as daemon
 from tests.functional import TEST_DATA_DIR
 
 LOGFILE = os.path.join(TEST_DATA_DIR, 'customwebhook.log')
@@ -40,16 +36,13 @@ class WebHookMessage(Document):
     message = StringField()
 
 
-class CustomWebHook(RestHandler):
-
-    @post('')
-    async def income_webhook(self, **kw):
-        m = self.model(message=self.request.body)
-        await m.save()
-
-
-url = URLSpec('/webhookmessage/(.*)', CustomWebHook, {'model': WebHookMessage})
-app = PyroApplication([url])
+class MyHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(content_length)
+        loop = asyncio.get_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(WebHookMessage(message=body).save())
 
 
 if __name__ == '__main__':
@@ -57,26 +50,10 @@ if __name__ == '__main__':
     def start(workdir, daemonize=False, stdout=LOGFILE, stderr=LOGFILE,
               pidfile=None, loglevel='info', conffile=None):
 
-        workdir = os.path.abspath(workdir)
-        with changedir(workdir):
-            sys.path.append(workdir)
-            module = 'testdata.custom_webhook'
-            os.environ['PYROCUMULUS_SETTINGS_MODULE'] = module
-
-            from pyrocumulus.conf import settings
-
-            sys.argv = ['pyromanager.py', '']
-
-            command = get_command('runtornado')()
-
-            command.kill = False
-            command.daemonize = daemonize
-            command.stderr = stderr
-            command.application = 'tests.functional.custom_webhook.app'
-            command.stdout = stdout
-            command.port = settings.TORNADO_PORT
-            command.pidfile = pidfile
-            command.run()
+        server_address = ("", 8123)
+        httpd = HTTPServer(server_address, MyHandler)
+        print("Servidor rodando em http://localhost:8080")
+        daemon(httpd.serve_forever, [], {}, stdout, stderr, workdir, pidfile)
 
     @command
     def stop(workdir, pidfile=None):
@@ -87,20 +64,10 @@ if __name__ == '__main__':
 
         workdir = os.path.abspath(workdir)
         with changedir(workdir):
-            sys.path.append(workdir)
+            with open(pidfile) as fd:
+                pid = int(fd.read())
 
-            module = 'tests.functional.data.master.custom_webhook'
-            os.environ['PYROCUMULUS_SETTINGS_MODULE'] = module
-
-            sys.argv = ['pyromanager.py', '']
-
-            command = get_command('runtornado')()
-            command.application = 'tests.functional.custom_webhook.app'
-            command.pidfile = pidfile
-            command.kill = True
-            command.run()
-
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(WebHookMessage.drop_collection())
+        sig = 9
+        os.kill(pid, sig)
 
     main()
