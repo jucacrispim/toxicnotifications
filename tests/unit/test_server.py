@@ -19,7 +19,7 @@
 
 import logging
 from unittest import TestCase
-from unittest.mock import patch, MagicMock, AsyncMock, Mock
+from unittest.mock import patch, AsyncMock, Mock
 
 from bson import ObjectId
 from toxiccommon.exchange import JsonAckMessage
