@@ -1,6 +1,6 @@
 # put your requirements here
-toxiccore==0.11.0
-toxicmaster==0.12.4
+toxiccore==0.13.2
+toxicmaster==0.12.5
 toxicpoller>=0.10.0
 toxicslave>=0.11.0
 toxiccommon==0.11.0
