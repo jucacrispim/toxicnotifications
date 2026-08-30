@@ -15,7 +15,7 @@ description = "toxicnotifications: Build status notifications for toxicbuild"
 readme = "README.md"
 
 dependencies = [
-    'toxiccore>=0.13.2',
+    'toxiccore==0.13.2',
     'toxiccommon==0.11.0',
     'mongomotor==0.17.1',
     'pyrocumulus>=0.12.4',
