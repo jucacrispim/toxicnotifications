@@ -1,6 +1,10 @@
 Changelog
 =========
 
+* v0.11.1
+
+  - Update toxiccore
+
 * v0.11.0
 
   - Refactor the server from an HTTP API to a TCP connection using
