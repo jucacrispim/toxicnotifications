@@ -87,6 +87,9 @@ def start(workdir, daemonize=False, stdout=LOGFILE, stderr=LOGFILE,
 
     _set_conffile_env(workdir, conffile)
 
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     create_settings_and_connect()
     from toxicnotifications import settings
 
@@ -106,9 +109,6 @@ def start(workdir, daemonize=False, stdout=LOGFILE, stderr=LOGFILE,
         keyfile = settings.KEYFILE
     except AttributeError:
         keyfile = None
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
 
     if daemonize:
         daemon(call=notifications_init, cargs=(addr, port),
