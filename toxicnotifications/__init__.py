@@ -22,7 +22,7 @@
 from mongomotor import connect
 from toxiccore.conf import Settings
 
-__version__ = '0.11.1'
+__version__ = '0.11.2'
 
 ENVVAR = 'TOXICNOTIFICATIONS_SETTINGS'
 DEFAULT_SETTINGS = 'toxicnotifications.conf'

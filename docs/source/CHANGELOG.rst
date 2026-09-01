@@ -1,6 +1,10 @@
 Changelog
 =========
 
+* v0.11.2
+
+  - Fix process startup
+
 * v0.11.1
 
   - Update toxiccore
