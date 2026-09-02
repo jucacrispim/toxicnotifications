@@ -25,6 +25,7 @@ import shutil
 import sys
 from time import sleep
 from uuid import uuid4
+import signal
 
 from toxiccommon import common_setup
 from toxiccore.cmd import command, main
@@ -228,6 +229,10 @@ def notifications_init(addr, port, use_ssl, certfile, keyfile, loglevel):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(common_setup(settings))
     handler = OutputMessageHandler()
+    # Registra o shutdown do handler nos sinais de interrupção/termo
+    signal.signal(signal.SIGTERM, handler.sync_shutdown)
+    signal.signal(signal.SIGINT, handler.sync_shutdown)
+
     asyncio.ensure_future(handler.run())
     run_server(addr, port, use_ssl=use_ssl,
                certfile=certfile, keyfile=keyfile)

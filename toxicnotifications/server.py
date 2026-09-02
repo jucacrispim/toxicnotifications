@@ -53,7 +53,7 @@ class OutputMessageHandler(LoggerMixin):
     async def _handle_notifications(self):
         self.log('Handling notifications', level='debug')
         exchange = type(self).EXCHANGE
-        async with await exchange.consume(timeout=1000) as consumer:
+        async with await exchange.consume(timeout=2) as consumer:
             while not self._stop_consuming_messages:
                 try:
                     msg = await consumer.fetch_message(cancel_on_timeout=False)
