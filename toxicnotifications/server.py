@@ -202,6 +202,17 @@ class NotificationsServer(ToxicServer):
 
     PROTOCOL_CLS = NotificationsProtocol
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.output_handler = OutputMessageHandler(loop=self.loop)
+
+    def start(self):
+        ensure_future(self.output_handler.run())
+        super().start()
+
+    async def shutdown(self):
+        await self.output_handler.shutdown()
+
 
 def run_server(addr='0.0.0.0', port=1234, loop=None, use_ssl=False,
                **ssl_kw):  # pragma no cover

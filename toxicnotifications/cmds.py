@@ -223,17 +223,11 @@ def output_handler_init(handler):
 
 def notifications_init(addr, port, use_ssl, certfile, keyfile, loglevel):
 
-    from toxicnotifications.server import OutputMessageHandler, run_server
+    from toxicnotifications.server import run_server
     from toxicnotifications import settings
     set_loglevel(loglevel)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(common_setup(settings))
-    handler = OutputMessageHandler()
-    # Registra o shutdown do handler nos sinais de interrupção/termo
-    signal.signal(signal.SIGTERM, handler.sync_shutdown)
-    signal.signal(signal.SIGINT, handler.sync_shutdown)
-
-    asyncio.ensure_future(handler.run())
     run_server(addr, port, use_ssl=use_ssl,
                certfile=certfile, keyfile=keyfile)
 
