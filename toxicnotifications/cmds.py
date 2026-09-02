@@ -25,7 +25,6 @@ import shutil
 import sys
 from time import sleep
 from uuid import uuid4
-import signal
 
 from toxiccommon import common_setup
 from toxiccore.cmd import command, main
