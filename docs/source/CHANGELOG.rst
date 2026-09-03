@@ -3,7 +3,7 @@ Changelog
 
 * v0.11.2
 
-  - Fix process startup
+  - Refactor server to start notification handler on server start
 
 * v0.11.1
 
