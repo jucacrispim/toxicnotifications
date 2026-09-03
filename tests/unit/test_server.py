@@ -23,6 +23,7 @@ from unittest.mock import patch, AsyncMock, Mock
 
 from bson import ObjectId
 from toxiccommon.exchange import JsonAckMessage
+import toxiccore
 from toxicnotifications import server
 from toxicnotifications import (Notification, SlackNotification)
 from tests import async_test
@@ -309,24 +310,20 @@ class NotificationsProtocolTest(TestCase):
 
 class NotificationsServerTest(TestCase):
 
-    @patch('toxiccore.server.ToxicServer.start')
-    def test_notifications_server_lifecycle(self, mock_super_start):
-        server_inst = server.NotificationsServer('localhost', 1234)
+    @patch('asyncio.events.AbstractEventLoop.create_server', AsyncMock())
+    @patch.object(server.OutputMessageHandler, 'run', AsyncMock())
+    @patch.object(toxiccore.server.ToxicServer, 'start', Mock())
+    @patch.object(server.OutputMessageHandler, 'shutdown', AsyncMock())
+    @async_test
+    async def test_notifications_server_lifecycle(self):
+        loop = Mock()
+        server_inst = server.NotificationsServer('localhost', 1234, loop=loop)
+
+        server_inst.start()
+        await server_inst.shutdown()
+
         self.assertIsInstance(server_inst.output_handler,
                               server.OutputMessageHandler)
-
-        with patch.object(
-                server.OutputMessageHandler, 'run', AsyncMock()) as mock_run:
-            server_inst.start()
-            self.assertTrue(mock_run.called)
-            self.assertTrue(mock_super_start.called)
-
-        @async_test
-        async def test_shutdown_coro():
-            with patch.object(
-                    server.OutputMessageHandler,
-                    'shutdown', AsyncMock()) as mock_shutdown:
-                await server_inst.shutdown()
-                self.assertTrue(mock_shutdown.called)
-
-        test_shutdown_coro()
+        self.assertTrue(server.OutputMessageHandler.run.called)
+        self.assertTrue(toxiccore.server.ToxicServer.start.called)
+        self.assertTrue(server.OutputMessageHandler.shutdown.called)
