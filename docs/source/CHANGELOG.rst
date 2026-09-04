@@ -1,6 +1,10 @@
 Changelog
 =========
 
+* v0.11.3
+
+  - Update toxiccore
+
 * v0.11.2
 
   - Refactor server to start notification handler on server start
