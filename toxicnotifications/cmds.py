@@ -20,7 +20,7 @@
 
 import asyncio
 import os
-import importlib
+import importlib.resources
 import shutil
 import sys
 from time import sleep
