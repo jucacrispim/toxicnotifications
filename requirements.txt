@@ -4,7 +4,7 @@ toxicmaster==0.12.5
 toxicpoller>=0.10.0
 toxicslave>=0.11.0
 toxiccommon==0.11.0
-mongomotor==0.17.1
+mongomotor==0.17.3
 pytest==7.3.2
 pytest-cov==4.1.0
 pytest-cover==3.0.0
