@@ -1,6 +1,10 @@
 Changelog
 =========
 
+* v0.11.6
+
+  - Update mongomotor
+
 * v0.11.5
 
   - Fix missing ``importlib.resources`` import that broke ``create`` on a
