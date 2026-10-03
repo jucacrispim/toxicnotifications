@@ -1,6 +1,10 @@
 Changelog
 =========
 
+* v0.11.7
+
+  - Update toxiccore
+
 * v0.11.6
 
   - Update mongomotor
